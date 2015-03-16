@@ -93,11 +93,11 @@ This command:
 .. note:: While running it may ask for the remote server ``root`` password or
    the ``sudo`` password (standard password for the remote user configured in
    the environment) as well as the specified ``db_user`` and/or database root
-   password.  See the :ref:`mysql_conf <fabric-commands#mysql-conf>` command
+   password.  See the :ref:`psql_conf <fabric-commands#psql-conf>` command
    for a way to eliminate the need for database password prompting.
 
-.. note:: This command will try to create a database on MySQL, which will fail
-   if MySQL is not installed or the settings don't provide configuration data
+.. note:: This command will try to create a database on PostgreSQL, which will fail
+   if PostgreSQL is not installed or the settings don't provide configuration data
    for creating the database.
 
 Examples:
@@ -191,7 +191,7 @@ This command:
 .. note:: While running it may ask for the remote server ``root`` password or
    the ``sudo`` password (standard password for the remote user configured in
    the environment) as well as the specified ``db_user`` and/or database root
-   password.  See the :ref:`mysql_conf <fabric-commands#mysql-conf>` command
+   password.  See the :ref:`psql_conf <fabric-commands#psql-conf>` command
    for a way to eliminate the need for database password prompting.
 
 Examples:
@@ -210,14 +210,14 @@ dump_db
 
 This command:
 
-- Dumps the database to the provided filename using the :command:`mysqldump`
+- Dumps the database to the provided filename using the :command:`pg_dump`
   command
 - Downloads the dumpfile to the local computer
 
 .. note:: While running it may ask for the remote server ``root`` password or
    the ``sudo`` password (standard password for the remote user configured in
    the environment) as well as the specified ``db_user`` and/or database root
-   password.  See the :ref:`mysql_conf <fabric-commands#mysql-conf>` command
+   password.  See the :ref:`psql_conf <fabric-commands#psql-conf>` command
    for a way to eliminate the need for database password prompting.
 
 .. note:: This commands can be used to perform periodic backups, that can be
@@ -236,7 +236,7 @@ Examples:
 .. code-block:: bash
 
     $ fab production dump_db  # Call that will use the default filename
-    $ fab production dump_db:dumpfile=backup_mysql.sql  # Call which provides a filename
+    $ fab production dump_db:dumpfile=backup_psql.sql  # Call which provides a filename
 
 
 .. _fabric-commands#enable-site:
@@ -310,12 +310,12 @@ This command:
 
 - Uploads the given SQL dump file to the remote server
 - Imports it to the database specified on Fabric settings using the
-  :command:`mysql` command
+  :command:`psql` command
 
 .. note:: While running it may ask for the remote server ``root`` password or
    the ``sudo`` password (standard password for the remote user configured in
    the environment) as well as the specified ``db_user`` and/or database root
-   password.  See the :ref:`mysql_conf <fabric-commands#mysql-conf>` command
+   password.  See the :ref:`psql_conf <fabric-commands#psql-conf>` command
    for a way to eliminate the need for database password prompting.
 
 .. note:: You must first create the database you will import (e.g. using the
@@ -336,7 +336,7 @@ Examples:
 .. code-block:: bash
 
     $ fab production create_db  # Remember to create the DB first
-    $ fab production load_db:dumpfile=backup_mysql.sql
+    $ fab production load_db:dumpfile=backup_psql.sql
 
 
 .. _fabric-commands#migratedb:
@@ -358,25 +358,25 @@ Examples:
     $ fab production migratedb
 
 
-.. _fabric-commands#mysql-conf:
+.. _fabric-commands#psql-conf:
 
-mysql_conf
+psql_conf
 ^^^^^^^^^^
 
 .. versionadded:: 2.5.1
 
-This command creates a :file:`.my.cnf` MySQL options file on the remote system
+This command creates a :file:`.my.cnf` PostgreSQL options file on the remote system
 with the password(s) for database access stored in them (the passwords are
 taken from the :file:`fabric.py` settings file).  Once you have done this, you
 can un-comment the alternate ``db_password_opt`` and ``db_root_password_opt``
 settings in :file:`fabric.py`, which will eliminate the need for password
-prompting on all MySQL operations.
+prompting on all PostgreSQL operations.
 
 Examples:
 
 .. code-block:: bash
 
-    $ fab production mysql_conf
+    $ fab production psql_conf
 
 
 .. _fabric-commands#production:
