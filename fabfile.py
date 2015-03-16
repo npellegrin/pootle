@@ -226,19 +226,18 @@ def create_db():
     create_db_cmd = ("CREATE DATABASE `%(db_name)s` "
                      "DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;"
                      % env)
-    grant_db_cmd = ("GRANT ALL PRIVILEGES ON `%(db_name)s`.* TO `%(db_user)s`"
-                    "@localhost IDENTIFIED BY \"%(db_password)s\"; "
-                    "FLUSH PRIVILEGES;"
+    grant_db_cmd = ("GRANT ALL PRIVILEGES ON DATABASE `%(db_name)s`.* TO `%(db_user)s`"
+                    "@localhost;
                     % env)
 
     print('\n\nCreating DB...')
 
     with settings(hide('stderr')):
-        run(("mysql -u %(db_user)s %(db_password_opt)s -e '" % env) +
+        run(("psql -U %(db_user)s -c '" % env) +
             create_db_cmd +
             ("' || { test root = '%(db_user)s' && exit $?; " % env) +
-            "echo 'Trying again, with MySQL root DB user'; " +
-            ("mysql -u root %(db_root_password_opt)s -e '" % env) +
+            "echo 'Trying again, with PostgreSQL root DB user'; " +
+            ("psql -U root -c '" % env) +
             create_db_cmd + grant_db_cmd + "';}")
 
 
@@ -250,8 +249,8 @@ def drop_db():
 
     if confirm('\nDropping the %s DB loses ALL its data! Are you sure?'
                % (env['db_name']), default=False):
-        run("echo 'DROP DATABASE `%s`' | mysql -u %s %s" %
-            (env['db_name'], env['db_user'], env['db_password_opt']))
+        run("echo 'DROP DATABASE `%s`' | psql -U %s" %
+            (env['db_name'], env['db_user']))
     else:
         abort('\nAborting.')
 
@@ -274,20 +273,20 @@ def _copy_db():
     with settings(hide('stderr'), temp_dump='/tmp/temporary_DB_backup.sql'):
         print('\nDumping DB data...')
 
-        run("mysqldump -u %(db_user)s %(db_password_opt)s %(source_db)s > "
+        run("pg_dump -U %(db_user)s %(source_db)s > "
             "%(temp_dump)s"
             " || { test root = '%(db_user)s' && exit $?; "
-            "echo 'Trying again, with MySQL root DB user'; "
-            "mysqldump -u root %(db_root_password_opt)s %(source_db)s > "
+            "echo 'Trying again, with PostgreSQL root DB user'; "
+            "pg_dump -U root %(source_db)s > "
             "%(temp_dump)s;}" % env)
 
         print('\nLoading data into the DB...')
 
-        run("mysql -u %(db_user)s %(db_password_opt)s %(db_name)s < "
+        run("pg_restore -U %(db_user)s -d %(db_name)s "
             "%(temp_dump)s"
             " || { test root = '%(db_user)s' && exit $?; "
-            "echo 'Trying again, with MySQL root DB user'; "
-            "mysql -u root %(db_root_password_opt)s %(db_name)s < "
+            "echo 'Trying again, with PostgreSQL root DB user'; "
+            "pg_restore -U root -d %(db_name)s "
             "%(temp_dump)s;}" % env)
 
         run('rm -f %(temp_dump)s' % env)
@@ -395,8 +394,8 @@ def load_db(dumpfile=None):
 
                 with settings(hide('stderr')):
                     put(dumpfile, remote_filename)
-                    run('mysql -u %s %s %s < %s' %
-                        (env['db_user'], env['db_password_opt'],
+                    run('psql -U %s -d %s < %s' %
+                        (env['db_user'],
                          env['db_name'], remote_filename))
                     run('rm %s' % (remote_filename))
             else:
@@ -427,8 +426,8 @@ def dump_db(dumpfile="pootle_DB_backup.sql"):
                     % remote_filename, default=False)):
 
             with settings(hide('stderr')):
-                run('mysqldump -u %s %s %s > %s' %
-                    (env['db_user'], env['db_password_opt'],
+                run('pg_dump -U %s -d %s > %s' %
+                    (env['db_user'],
                      env['db_name'], remote_filename))
                 get(remote_filename, '.')
                 run('rm %s' % (remote_filename))
@@ -560,20 +559,20 @@ def compile_translations():
             with prefix('source %(env_path)s/bin/activate' % env):
                 run('python setup.py build_mo')
 
-def mysql_conf():
-    """Sets up .my.cnf file for passwordless MySQL operation"""
+def psql_conf():
+    """Sets up .pgpass file for passwordless PostgreSQL operation"""
     require('environment', provided_by=[production, staging])
 
-    print('\n\nSetting up MySQL password configuration...')
+    print('\n\nSetting up PostgreSQL password configuration...')
 
-    conf_filename = '~/.my.cnf'
+    conf_filename = '~/.pgpass'
 
     if (not exists(conf_filename) or
         confirm('\n%s already exists. Do you want to overwrite it?'
                 % conf_filename, default=False)):
 
         with settings(hide('stdout', 'stderr')):
-            upload_template('deploy/my.cnf', conf_filename, context=env)
+            upload_template('deploy/pgpass', conf_filename, context=env)
             run('chmod 600 %s' % conf_filename)
 
     else:
