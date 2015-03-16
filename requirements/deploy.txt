@@ -1,9 +1,9 @@
 -r base.txt
 
 # Databases
-MySQL-python
-# Uncomment for PostgreSQL
-# psycopg2
+psycopg2
+# Uncomment for MySQL
+# MySQL-python
 
 # Libraries
 python-levenshtein
