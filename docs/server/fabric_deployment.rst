@@ -9,7 +9,7 @@ deployments and simplifies maintenance tasks and the upgrade to newer versions.
 
 The sample scripts bundled with Pootle allow you to deploy a Pootle server
 using a Python virtualenv, running on a **Apache** server with *mod_wsgi* using
-**MySQL** as database server on **Debian**-based systems. These sample scripts
+**PostgreSQL** as database server on **Debian**-based systems. These sample scripts
 can be modified to perform different deployments.
 
 To see a comprehensive list of all Fabric commands available to deploy Pootle
@@ -37,7 +37,7 @@ remote server:
 - `python-pip <http://www.pip-installer.org/>`_
 - Git distributed version control system
 - Apache web server
-- MySQL database server
+- PostgreSQL database server
 - OpenSSH server
 - C compiler (to install Pootle's Python dependencies -- can be removed later)
 
@@ -165,7 +165,7 @@ Fabric commands.
    as to set up the database user access for the deployment.
 
    The ``db_root_password`` setting, on the other hand, is only used to
-   configure the MySQL options file, if you choose to do this, and is only
+   configure the PostgreSQL options file, if you choose to do this, and is only
    needed when creating the database (if the normal user does not have the
    necessary permissions).  Leaving this with default setting will have no
    security impact.
@@ -220,7 +220,7 @@ Configuring passwordless access
 -------------------------------
 
 While it is not required, it is much easier to perform deployment operations
-without interactive prompts for login, sudo, or MySQL database passwords.
+without interactive prompts for login, sudo, or PostgreSQL database passwords.
 
 You can eliminate the need for an SSH login password by adding your public SSH
 key(s) to the :file:`~/.ssh/authorized_hosts` file of the user on the remote
@@ -231,14 +231,14 @@ permissions mode 440) containing ``username ALL = (ALL) NOPASSWD: ALL`` (where
 *username* is replaced with the user configured in the :file:`fabric.py`
 settings) to the :file:`/etc/sudoers.d/` directory.
 
-You can eliminate the need for MySQL passwords by configuring the database
+You can eliminate the need for PostgreSQL passwords by configuring the database
 password(s) in the :file:`fabric.py` settings file, running the
-:ref:`mysql_conf <fabric-commands#mysql-conf>` fabric command to create a MySQL
+:ref:`psql_conf <fabric-commands#psql-conf>` fabric command to create a PostgreSQL
 options file for the remote user:
 
 .. code-block:: bash
 
-    $ fab production mysql_conf  # Set up MySQL options file
+    $ fab production psql_conf  # Set up PostgreSQL options file
 
 and then modifying the :file:`fabric.py` settings file to un-comment the
 alternate value for :setting:`db_password_opt` (and optionally
@@ -254,15 +254,15 @@ If creating a new database from scratch:
 
 .. code-block:: bash
 
-    $ fab production create_db  # Creates Pootle DB on MySQL
+    $ fab production create_db  # Creates Pootle DB on PostgreSQL
     $ fab production setup_db   # Populates the initial DB and its schema
 
 If creating a blank database and populating with a (local) database backup:
 
 .. code-block:: bash
 
-    $ fab production create_db  # Creates Pootle DB on MySQL
-    $ fab production load_db:dumpfile=backup_mysql.sql # Populate DB from local dump
+    $ fab production create_db  # Creates Pootle DB on PostgreSQL
+    $ fab production load_db:dumpfile=backup_psql.sql # Populate DB from local dump
 
 .. note:: The dumpfile (for load_db and dump_db) is local to the system where
    Fabric runs, and is automatically copied to/from the remote server.
@@ -308,7 +308,7 @@ It is also possible to run several commands in a row with a single call.
 .. code-block:: bash
 
     $ # Run several commands in a row using a single call to fab
-    $ fab production bootstrap:branch=stable/2.5.0 create_db load_db:dumpfile=backup_mysql_2.5.0-rc1.sql
+    $ fab production bootstrap:branch=stable/2.5.0 create_db load_db:dumpfile=backup_psql_2.5.0-rc1.sql
 
 The previous call will run :ref:`production <fabric-commands#production>`
 followed by :ref:`bootstrap <fabric-commands#bootstrap>`, :ref:`create_db
