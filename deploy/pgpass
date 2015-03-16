@@ -1,0 +1,2 @@
+localhost:4321:%(db_name)s:%(db_user)s:%(db_password)s
+localhost:4321:%(db_name)s:root:%(db_root_password)s 
