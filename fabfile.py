@@ -232,7 +232,7 @@ def create_db():
                      "DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;"
                      % env)
     grant_db_cmd = ("GRANT ALL PRIVILEGES ON DATABASE `%(db_name)s`.* TO `%(db_user)s`"
-                    "@localhost;
+                    "@localhost;"
                     % env)
 
     print('\n\nCreating DB...')
