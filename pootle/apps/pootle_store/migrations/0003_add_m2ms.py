@@ -2,102 +2,49 @@
 import datetime
 from south.db import db
 from south.v2 import SchemaMigration
-from django.db import models
+from django.db import models, connection
 
 
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding model 'QualityCheck'
-        db.create_table('pootle_store_qualitycheck', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=64, db_index=True)),
-            ('unit', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['pootle_store.Unit'])),
-            ('category', self.gf('django.db.models.fields.IntegerField')(default=0)),
-            ('message', self.gf('django.db.models.fields.TextField')()),
-            ('false_positive', self.gf('django.db.models.fields.BooleanField')(default=False, db_index=True)),
-        ))
-        db.send_create_signal('pootle_store', ['QualityCheck'])
+        cursor = connection.cursor()
+        if "user_id" in [column[0] for column in connection.introspection.get_table_description(cursor, "pootle_store_suggestion")]:
+            # skip the migration if it shouldnt be applied
+            return
 
-        # Adding model 'Suggestion'
-        db.create_table('pootle_store_suggestion', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('target_f', self.gf('pootle_store.fields.MultiStringField')()),
-            ('target_hash', self.gf('django.db.models.fields.CharField')(max_length=32, db_index=True)),
-            ('unit', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['pootle_store.Unit'])),
-            ('translator_comment_f', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-        ))
-        db.send_create_signal('pootle_store', ['Suggestion'])
+        # Adding field 'Suggestion.user'
+        db.add_column('pootle_store_suggestion', 'user',
+                      self.gf('django.db.models.fields.related.ForeignKey')(to=orm['pootle_profile.PootleProfile'], null=True),
+                      keep_default=False)
 
-        # Adding unique constraint on 'Suggestion', fields ['unit', 'target_hash']
-        db.create_unique('pootle_store_suggestion', ['unit_id', 'target_hash'])
+        # Adding field 'Unit.submitted_by'
+        db.add_column('pootle_store_unit', 'submitted_by',
+                      self.gf('django.db.models.fields.related.ForeignKey')(related_name='submitted', null=True, to=orm['pootle_profile.PootleProfile']),
+                      keep_default=False)
 
-        # Adding model 'Unit'
-        db.create_table('pootle_store_unit', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('store', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['pootle_store.Store'])),
-            ('index', self.gf('django.db.models.fields.IntegerField')(db_index=True)),
-            ('unitid', self.gf('django.db.models.fields.TextField')()),
-            ('unitid_hash', self.gf('django.db.models.fields.CharField')(max_length=32, db_index=True)),
-            ('source_f', self.gf('pootle_store.fields.MultiStringField')(null=True)),
-            ('source_hash', self.gf('django.db.models.fields.CharField')(max_length=32, db_index=True)),
-            ('source_wordcount', self.gf('django.db.models.fields.SmallIntegerField')(default=0)),
-            ('source_length', self.gf('django.db.models.fields.SmallIntegerField')(default=0, db_index=True)),
-            ('target_f', self.gf('pootle_store.fields.MultiStringField')(null=True, blank=True)),
-            ('target_wordcount', self.gf('django.db.models.fields.SmallIntegerField')(default=0)),
-            ('target_length', self.gf('django.db.models.fields.SmallIntegerField')(default=0, db_index=True)),
-            ('developer_comment', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-            ('translator_comment', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-            ('locations', self.gf('django.db.models.fields.TextField')(null=True)),
-            ('context', self.gf('django.db.models.fields.TextField')(null=True)),
-            ('state', self.gf('django.db.models.fields.IntegerField')(default=0, db_index=True)),
-            ('mtime', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, auto_now_add=True, db_index=True, blank=True)),
-            ('submitted_on', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, null=True, db_index=True, blank=True)),
-            ('commented_on', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, null=True, db_index=True, blank=True)),
-        ))
-        db.send_create_signal('pootle_store', ['Unit'])
+        # Adding field 'Unit.commented_by'
+        db.add_column('pootle_store_unit', 'commented_by',
+                      self.gf('django.db.models.fields.related.ForeignKey')(related_name='commented', null=True, to=orm['pootle_profile.PootleProfile']),
+                      keep_default=False)
 
-        # Adding unique constraint on 'Unit', fields ['store', 'unitid_hash']
-        db.create_unique('pootle_store_unit', ['store_id', 'unitid_hash'])
-
-        # Adding model 'Store'
-        db.create_table('pootle_store_store', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('file', self.gf('pootle_store.fields.TranslationStoreField')(max_length=255, db_index=True)),
-            ('pending', self.gf('pootle_store.fields.TranslationStoreField')(ignore='.pending', max_length=255)),
-            ('tm', self.gf('pootle_store.fields.TranslationStoreField')(ignore='.tm', max_length=255)),
-            ('parent', self.gf('django.db.models.fields.related.ForeignKey')(related_name='child_stores', to=orm['pootle_app.Directory'])),
-            ('pootle_path', self.gf('django.db.models.fields.CharField')(unique=True, max_length=255, db_index=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=128)),
-            ('sync_time', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime(1, 1, 1, 0, 0))),
-            ('state', self.gf('django.db.models.fields.IntegerField')(default=0, db_index=True)),
-        ))
-        db.send_create_signal('pootle_store', ['Store'])
-
-        # Adding unique constraint on 'Store', fields ['parent', 'name']
-        db.create_unique('pootle_store_store', ['parent_id', 'name'])
+        # Adding field 'Store.translation_project'
+        db.add_column('pootle_store_store', 'translation_project',
+                      self.gf('django.db.models.fields.related.ForeignKey')(related_name='stores', null=True, to=orm['pootle_translationproject.TranslationProject']),
+                      keep_default=False)
 
     def backwards(self, orm):
-        # Removing unique constraint on 'Store', fields ['parent', 'name']
-        db.delete_unique('pootle_store_store', ['parent_id', 'name'])
+        # Deleting field 'Suggestion.user'
+        db.delete_column('pootle_store_suggestion', 'user')
 
-        # Removing unique constraint on 'Unit', fields ['store', 'unitid_hash']
-        db.delete_unique('pootle_store_unit', ['store_id', 'unitid_hash'])
+        # Deleting field 'Unit.submitted_by'
+        db.delete_column('pootle_store_unit', 'submitted_by')
 
-        # Removing unique constraint on 'Suggestion', fields ['unit', 'target_hash']
-        db.delete_unique('pootle_store_suggestion', ['unit_id', 'target_hash'])
+        # Deleting field 'Unit.commented_by'
+        db.delete_column('pootle_store_unit', 'commented_by')
 
-        # Deleting model 'QualityCheck'
-        db.delete_table('pootle_store_qualitycheck')
-
-        # Deleting model 'Suggestion'
-        db.delete_table('pootle_store_suggestion')
-
-        # Deleting model 'Unit'
-        db.delete_table('pootle_store_unit')
-
-        # Deleting model 'Store'
-        db.delete_table('pootle_store_store')
+        # Deleting field 'Store.translation_project'
+        db.delete_column('pootle_store_store', 'translation_project')
 
     models = {
         'auth.group': {
@@ -146,8 +93,7 @@ class Migration(SchemaMigration):
         'pootle_language.language': {
             'Meta': {'ordering': "['code']", 'object_name': 'Language', 'db_table': "'pootle_app_language'"},
             'code': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '50', 'db_index': 'True'}),
-            'description': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'description_html': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
+            'description': ('pootle.core.markup.fields.MarkupField', [], {'blank': 'True'}),
             'directory': ('django.db.models.fields.related.OneToOneField', [], {'to': "orm['pootle_app.Directory']", 'unique': 'True'}),
             'fullname': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
@@ -170,8 +116,7 @@ class Migration(SchemaMigration):
             'Meta': {'ordering': "['code']", 'object_name': 'Project', 'db_table': "'pootle_app_project'"},
             'checkstyle': ('django.db.models.fields.CharField', [], {'default': "'standard'", 'max_length': '50'}),
             'code': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255', 'db_index': 'True'}),
-            'description': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'description_html': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
+            'description': ('pootle.core.markup.fields.MarkupField', [], {'blank': 'True'}),
             'directory': ('django.db.models.fields.related.OneToOneField', [], {'to': "orm['pootle_app.Directory']", 'unique': 'True'}),
             'fullname': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
@@ -212,6 +157,20 @@ class Migration(SchemaMigration):
             'unit': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['pootle_store.Unit']"}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['pootle_profile.PootleProfile']", 'null': 'True'})
         },
+        'pootle_store.tmunit': {
+            'Meta': {'object_name': 'TMUnit'},
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['pootle_project.Project']"}),
+            'source_f': ('pootle_store.fields.MultiStringField', [], {'null': 'True'}),
+            'source_lang': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'tmunit_source_lang'", 'to': "orm['pootle_language.Language']"}),
+            'source_length': ('django.db.models.fields.SmallIntegerField', [], {'default': '0', 'db_index': 'True'}),
+            'submitted_by': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'tmunit_submitted_by'", 'null': 'True', 'to': "orm['pootle_profile.PootleProfile']"}),
+            'submitted_on': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'null': 'True', 'db_index': 'True', 'blank': 'True'}),
+            'target_f': ('pootle_store.fields.MultiStringField', [], {'null': 'True'}),
+            'target_lang': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'tmunit_target_lang'", 'to': "orm['pootle_language.Language']"}),
+            'target_length': ('django.db.models.fields.SmallIntegerField', [], {'default': '0', 'db_index': 'True'}),
+            'unit': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['pootle_store.Unit']"})
+        },
         'pootle_store.unit': {
             'Meta': {'ordering': "['store', 'index']", 'unique_together': "(('store', 'unitid_hash'),)", 'object_name': 'Unit'},
             'commented_by': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'commented'", 'null': 'True', 'to': "orm['pootle_profile.PootleProfile']"}),
@@ -237,16 +196,45 @@ class Migration(SchemaMigration):
             'unitid': ('django.db.models.fields.TextField', [], {}),
             'unitid_hash': ('django.db.models.fields.CharField', [], {'max_length': '32', 'db_index': 'True'})
         },
+        'pootle_tagging.goal': {
+            'Meta': {'ordering': "['priority']", 'object_name': 'Goal'},
+            'description': ('pootle.core.markup.fields.MarkupField', [], {'blank': 'True'}),
+            'directory': ('django.db.models.fields.related.OneToOneField', [], {'to': "orm['pootle_app.Directory']", 'unique': 'True'}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '100'}),
+            'priority': ('django.db.models.fields.IntegerField', [], {'default': '10'}),
+            'project_goal': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'slug': ('django.db.models.fields.SlugField', [], {'unique': 'True', 'max_length': '100'})
+        },
+        'pootle_tagging.itemwithgoal': {
+            'Meta': {'object_name': 'ItemWithGoal'},
+            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "u'pootle_tagging_itemwithgoal_tagged_items'", 'to': "orm['contenttypes.ContentType']"}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'object_id': ('django.db.models.fields.IntegerField', [], {'db_index': 'True'}),
+            'tag': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'items_with_goal'", 'to': "orm['pootle_tagging.Goal']"})
+        },
         'pootle_translationproject.translationproject': {
             'Meta': {'unique_together': "(('language', 'project'),)", 'object_name': 'TranslationProject', 'db_table': "'pootle_app_translationproject'"},
-            'description': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'description_html': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
+            'description': ('pootle.core.markup.fields.MarkupField', [], {'blank': 'True'}),
             'directory': ('django.db.models.fields.related.OneToOneField', [], {'to': "orm['pootle_app.Directory']", 'unique': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'language': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['pootle_language.Language']"}),
             'pootle_path': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255', 'db_index': 'True'}),
             'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['pootle_project.Project']"}),
             'real_path': ('django.db.models.fields.FilePathField', [], {'max_length': '100'})
+        },
+        'taggit.tag': {
+            'Meta': {'object_name': 'Tag'},
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '100'}),
+            'slug': ('django.db.models.fields.SlugField', [], {'unique': 'True', 'max_length': '100'})
+        },
+        'taggit.taggeditem': {
+            'Meta': {'object_name': 'TaggedItem'},
+            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "u'taggit_taggeditem_tagged_items'", 'to': "orm['contenttypes.ContentType']"}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'object_id': ('django.db.models.fields.IntegerField', [], {'db_index': 'True'}),
+            'tag': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "u'taggit_taggeditem_items'", 'to': "orm['taggit.Tag']"})
         }
     }
 
